@@ -1,0 +1,77 @@
+from telegram import Update, ReplyKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes, ConversationHandler
+import openpyxl
+import os
+from datetime import datetime
+
+ASK_TASK, ASK_DATE, ASK_PERSON = range(3)
+
+# Замените 'YOUR_BOT_TOKEN_HERE' на ваш токен из безопасного источника.
+BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"
+employees = {
+    "Алиби": 1481100776,  # замените на актуальные Telegram ID сотрудников
+}
+
+FILE_NAME = "porucheniya.xlsx"
+if os.path.exists(FILE_NAME):
+    wb = openpyxl.load_workbook(FILE_NAME)
+    ws = wb.active
+else:
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(["Поручение", "Срок", "Ответственный"])
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Привет! Напиши поручение.")
+    return ASK_TASK
+
+async def handle_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data['task'] = update.message.text
+    await update.message.reply_text("Когда срок выполнения? (ДД.ММ.ГГГГ)")
+    return ASK_DATE
+
+async def handle_date(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        datetime.strptime(update.message.text, "%d.%m.%Y")
+        context.user_data['date'] = update.message.text
+    except ValueError:
+        await update.message.reply_text("Неверный формат. Введите дату в виде ДД.ММ.ГГГГ.")
+        return ASK_DATE
+    keyboard = [[name] for name in employees.keys()]
+    reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
+    await update.message.reply_text("Кто ответственный?", reply_markup=reply_markup)
+    return ASK_PERSON
+
+async def handle_person(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    person = update.message.text
+    task = context.user_data.get('task')
+    date = context.user_data.get('date')
+    ws.append([task, date, person])
+    wb.save(FILE_NAME)
+
+    if person in employees:
+        await context.bot.send_message(
+            chat_id=employees[person],
+            text=f"Новое поручение:\n“{task}”\nСрок: {date}"
+        )
+
+    await update.message.reply_text("Поручение записано и отправлено.")
+    return ConversationHandler.END
+
+def main():
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler("start", start)],
+        states={
+            ASK_TASK: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_task)],
+            ASK_DATE: [MessageHandler(filters.TEXT, handle_date)],
+            ASK_PERSON: [MessageHandler(filters.TEXT, handle_person)],
+        },
+        fallbacks=[]
+    )
+    app.add_handler(conv_handler)
+    print("Бот запущен...")
+    app.run_polling()
+
+if __name__ == '__main__':
+    main()
