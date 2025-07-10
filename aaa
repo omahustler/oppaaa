@@ -1,4 +1,5 @@
-from telegram import Update, ReplyKeyboardMarkup
+# Online Python compilefrom telegram import Update, ReplyKeyboardMarkup
+
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes, ConversationHandler
 import openpyxl
 import os
@@ -7,7 +8,7 @@ from datetime import datetime
 ASK_TASK, ASK_DATE, ASK_PERSON = range(3)
 
 # Замените 'YOUR_BOT_TOKEN_HERE' на ваш токен из безопасного источника.
-BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"
+BOT_TOKEN = "7507868545:AAFKMbUZAhYPdcLXn4udlFqd5JOgN0A-51k"
 employees = {
     "Алиби": 1481100776,  # замените на актуальные Telegram ID сотрудников
 }
@@ -52,7 +53,7 @@ async def handle_person(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if person in employees:
         await context.bot.send_message(
             chat_id=employees[person],
-            text=f"Новое поручение:\n“{task}”\nСрок: {date}"
+            text=f"Новое поручение:\n\"{task}\"\nСрок: {date}"
         )
 
     await update.message.reply_text("Поручение записано и отправлено.")
@@ -75,3 +76,6 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+# Write Python 3 code in this online editor and run it.
+print("Try programiz.pro")
